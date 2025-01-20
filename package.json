@@ -1,0 +1,28 @@
+{
+  "bin": {
+    "auto-importer": "bin/auto-importer.js"
+  },
+  "name": "auto-importer",
+  "version": "1.0.0",
+  "description": "Automatically add imports in files based on ESLint output.",
+  "main": "src/auto-importer.js",
+  "scripts": {
+    "start": "node bin/auto-importer.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kaspernj/auto-importer.git"
+  },
+  "keywords": [
+    "auto",
+    "import",
+    "eslint"
+  ],
+  "author": "kasper@diestoeckels.de",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kaspernj/auto-importer/issues"
+  },
+  "homepage": "https://github.com/kaspernj/auto-importer#readme"
+}
