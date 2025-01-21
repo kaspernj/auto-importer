@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import fs from "fs/promises"
 import AutoImporter from "../src/auto-importer.js"
 
 const processArgs = process.argv.slice(2)
@@ -29,7 +28,7 @@ for (let i = 0; i < processArgs.length; i++) {
 
 if (!args.config) throw new Error("No config file specified")
 
-const configJson = await fs.readFile(args.config)
-const config = JSON.parse(configJson)
+const provides = await require(args.config).default
+const autoImporter = new AutoImporter({provides})
 
-new AutoImporter({libraries: config})
+await autoImporter.run()
