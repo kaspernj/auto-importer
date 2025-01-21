@@ -3,7 +3,8 @@
     "auto-importer": "bin/auto-importer.js"
   },
   "name": "auto-importer",
-  "version": "1.0.0",
+  "type": "module",
+  "version": "1.0.1",
   "description": "Automatically add imports in files based on ESLint output.",
   "main": "src/auto-importer.js",
   "scripts": {
@@ -24,5 +25,8 @@
   "bugs": {
     "url": "https://github.com/kaspernj/auto-importer/issues"
   },
-  "homepage": "https://github.com/kaspernj/auto-importer#readme"
+  "homepage": "https://github.com/kaspernj/auto-importer#readme",
+  "dependencies": {
+    "regex-escape": "^3.4.10"
+  }
 }

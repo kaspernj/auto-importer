@@ -2,28 +2,32 @@
 
 import {exec} from "child_process"
 import {promises as fs} from "fs"
+import regexEscape from "regex-escape"
 
 export default class AutoImporter {
-  constructor({provides, ...restProps}) {
+  constructor({dryRun, path, provides, verbose, ...restProps}) {
     const restPropsKeys = Object.keys(restProps)
 
     if (restPropsKeys.length > 0) {
       throw new Error(`AutoImporter: Invalid props ${restPropsKeys}`)
     }
 
+    this.dryRun = dryRun
+    this.path = path || process.cwd()
     this.provides = provides
+    this.verbose = verbose
   }
 
   runEslint() {
     return new Promise((resolve, reject) => {
-      exec("yarn eslint", null, (error, stdout, stderr) => {
-        if (error) {
-          reject(new Error(error))
-        } else if (stderr) {
-          reject(new Error(`AutoImporter: ${stderr}`))
-        } else {
-          resolve(stdout)
-        }
+      if (this.verbose) console.log("Running Eslint")
+
+      exec("yarn eslint", {cwd: this.path}, (error, stdout, stderr) => {
+        //if (error) console.log("Error", error)
+        //if (stderr) console.log("Stderr", stderr)
+        if (this.verbose) console.log("Succeeding Eslint")
+
+        resolve(stdout)
       })
     })
   }
@@ -31,22 +35,18 @@ export default class AutoImporter {
   async run() {
     const imports = {}
     const stdout = await this.runEslint()
-
-    if (stderr) {
-      throw new Error(`AutoImporter: ${stderr}`)
-    }
-
-    const fileMatches = stdout.matchAll(/\/home\/dev\/Development\/gratisbyggetilbud_rails\/(.+)\n([\s\S]+?)\n\n/g)
+    const regExp = new RegExp(`${regexEscape(this.path)}\/(.+)\\n([\\s\\S]+?)\\n\\n`, "g")
+    const fileMatches = stdout.matchAll(regExp)
 
     for (const fileMatch of fileMatches) {
       const filePath = fileMatch[1]
       const errors = fileMatch[2]
       const errorMatches = errors.matchAll(/error\s+'(.+)'\s+(.+)\s+(no-undef|react\/jsx-no-undef|react\/react-in-jsx-scope)/g)
 
-      console.log(filePath)
+      if (this.verbose) console.log(filePath)
 
       if (filePath.match(/\.jsx$/)) {
-        console.log("is React!")
+        if (this.verbose) console.log("is React!")
 
         const reactProvidePath = "react"
 
@@ -59,12 +59,12 @@ export default class AutoImporter {
           }
         }
       } else {
-        console.log("is not React!")
+        if (this.verbose) console.log("is not React!")
       }
 
       for (const errorMatch of errorMatches) {
         const constant = errorMatch[1]
-        const provide = provides[constant]
+        const provide = this.provides[constant]
         let providePath
 
         if (provide === undefined) {
@@ -78,7 +78,7 @@ export default class AutoImporter {
         }
 
         if (!providePath) {
-          console.log(`No provide path for ${constant}`)
+          if (this.verbose) console.log(`No provide path for ${constant}`)
         } else {
           // console.log(`Can provide with ${providePath}`)
 
@@ -92,7 +92,9 @@ export default class AutoImporter {
           }
 
           if (Array.isArray(provide)) {
-            if (provide.length == 2) {
+            if (provide.length == 1) {
+              imports[filePath][providePath].defaultImport = constant
+            } else if (provide.length == 2) {
               if (provide[1] == "default") {
                 imports[filePath][providePath].defaultImport = constant
               } else if (!imports[filePath][providePath].multiple.includes(constant)) {
@@ -105,9 +107,7 @@ export default class AutoImporter {
                 imports[filePath][providePath].modelClassRequire.push(constant)
               }
             } else {
-              console.log({provide})
-
-              throw new Error(`Unsupported length: ${provide.length}`)
+              throw new Error(`Unsupported length ${provide.length} for ${constant}`)
             }
           } else {
             imports[filePath][providePath].defaultImport = constant
@@ -116,18 +116,14 @@ export default class AutoImporter {
       }
     }
 
-    // console.log(imports)
-
     for (const filePath in imports) {
-      const fileContentBuffer = await fs.readFile(filePath)
+      const fileContentBuffer = await fs.readFile(`${this.path}/${filePath}`)
       const fileLines = fileContentBuffer.toString().split("\n")
       const restLines = []
       let match
 
       for (const fileLine of fileLines) {
         if (match = fileLine.match(/^\s*import (.+?) from \"(.+)\"/)) { // Line is an import
-          // console.log({match})
-
           const importConstant = match[1]
           const providePath = match[2]
           const multipleMatch = importConstant.match(/^\{(.+)\}$/)
@@ -250,8 +246,13 @@ export default class AutoImporter {
       const restContent = restLines.join("\n")
       const totalContent = `${importStatementsContent}\n${modelClassRequireContent}${restContent}`
 
-      console.log("Updating", filePath)
-      await fs.writeFile(filePath, totalContent)
+      if (this.dryRun) {
+        console.log(`Would like to update ${filePath} with the following imports:`)
+        console.log(`${importStatementsContent}\n`)
+      } else {
+        console.log(`Updating ${filePath}`)
+        await fs.writeFile(filePath, totalContent)
+      }
     }
   }
 }
