@@ -45,23 +45,6 @@ export default class AutoImporter {
 
       if (this.verbose) console.log(filePath)
 
-      if (filePath.match(/\.jsx$/)) {
-        if (this.verbose) console.log("is React!")
-
-        const reactProvidePath = "react"
-
-        if (!(filePath in imports)) imports[filePath] = {}
-        if (!(reactProvidePath in imports[filePath])) {
-          imports[filePath][reactProvidePath] = {
-            defaultImport: "React",
-            modelClassRequire: [],
-            multiple: []
-          }
-        }
-      } else {
-        if (this.verbose) console.log("is not React!")
-      }
-
       for (const errorMatch of errorMatches) {
         const constant = errorMatch[1]
         const provide = this.provides[constant]
@@ -251,7 +234,7 @@ export default class AutoImporter {
         console.log(`${importStatementsContent}\n`)
       } else {
         console.log(`Updating ${filePath}`)
-        await fs.writeFile(filePath, totalContent)
+        await fs.writeFile(`${this.path}/${filePath}`, totalContent)
       }
     }
   }
