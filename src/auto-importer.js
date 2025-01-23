@@ -162,10 +162,10 @@ export default class AutoImporter {
           // console.log(`${providePath2} before ${providePath1} because more total in 2 (${total1}, ${total2})`)
           return 1
         } else if (total1 >= 2 && total2 >= 2) {
-          if (providePath1.toLowerCase() < providePath2.toLowerCase()) {
+          if (defaultImport1.toLowerCase() < defaultImport2.toLowerCase()) {
             // console.log(`${providePath1} before ${providePath2}`)
             return -1
-          } else if (providePath1.toLowerCase() > providePath2.toLowerCase()) {
+          } else if (defaultImport1.toLowerCase() > defaultImport2.toLowerCase()) {
             // console.log(`${providePath2} before ${providePath1}`)
             return 1
           }
