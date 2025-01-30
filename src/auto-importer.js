@@ -41,9 +41,16 @@ export default class AutoImporter {
     for (const fileMatch of fileMatches) {
       const filePath = fileMatch[1]
       const errors = fileMatch[2]
-      const errorMatches = errors.matchAll(/error\s+'(.+)'\s+(.+)\s+(no-undef|react\/jsx-no-undef|react\/react-in-jsx-scope)/g)
+      const errorMatches = [...errors.matchAll(/error\s+'(.+)'\s+(.+)\s+(no-undef|react\/jsx-no-undef|react\/react-in-jsx-scope)/g)]
+      const sortImportsMatches = [...errors.matchAll(/error\s+(.+?)\s+sort-import/g)]
 
-      if (this.verbose) console.log(filePath)
+      if (sortImportsMatches.length > 0) {
+        if (!(filePath in imports)) {
+          imports[filePath] = {}
+        }
+      }
+
+      if (this.verbose) console.log(`Found file: ${filePath} with ${errorMatches.length} error matches and ${sortImportsMatches.length} sort imports`)
 
       for (const errorMatch of errorMatches) {
         const constant = errorMatch[1]
@@ -109,7 +116,7 @@ export default class AutoImporter {
         if (match = fileLine.match(/^\s*import (.+?) from \"(.+)\"/)) { // Line is an import
           const importConstant = match[1]
           const providePath = match[2]
-          const multipleMatch = importConstant.match(/^\{(.+)\}$/)
+          const multipleMatch = importConstant.match(/^((.+),\s*|)\{(.+)\}$/)
           const importData = imports[filePath][providePath] || {
             defaultImport: null,
             modelClassRequire: [],
@@ -117,7 +124,12 @@ export default class AutoImporter {
           }
 
           if (multipleMatch) {
-            const constants = multipleMatch[1].split(/\s*,\s*/)
+            const defaultImport = multipleMatch[2]
+            const constants = multipleMatch[3].split(/\s*,\s*/)
+
+            if (defaultImport) {
+              importData.defaultImport = defaultImport
+            }
 
             if (constants.length == 0) throw new Error(`No constants found in ${importConstant}`)
 
